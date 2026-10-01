@@ -1,50 +1,53 @@
 import prisma from "../lib/prisma.js";
+import bcrypt from "bcryptjs";
 
-export async function getUsers(req, res) {
-  const users = await prisma.user.findMany();
+export async function getMe(req, res) {
+  const userId = req.user.userId;
 
-  res.json(users);
-};
-
-export async function createUser(req, res) {
-  const { username, password } = req.body;
-
-  const user = await prisma.user.create({
-    data: {
-      username,
-      password,
-    },
-  });
-
-  res.status(201).json(user);
-}
-export async function updateUser(req, res) {
-  const id = Number(req.params.id);
-  const { username, password } = req.body;
-
-  const user = await prisma.user.update({
+  const user = await prisma.user.findUnique({
     where: {
-      id,
+      id: userId,
     },
-    data: {
-      username,
-      password,
+    select: {
+      id: true,
+      username: true,
     },
   });
+
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
 
   res.json(user);
 }
 
-export async function deleteUser(req, res) {
-  const id = Number(req.params.id);
+export async function updateMe(req, res) {
+  const userId = req.user.userId;
 
-  await prisma.user.delete({
+  const { username, password } = req.body;
+
+  const updateData = {};
+
+  if (username) {
+    updateData.username = username;
+  }
+
+  if (password) {
+    updateData.password = await bcrypt.hash(password, 10);
+  }
+
+  const updatedUser = await prisma.user.update({
     where: {
-      id,
+      id: userId,
+    },
+    data: updateData,
+    select: {
+      id: true,
+      username: true,
     },
   });
 
-  res.json({
-    message: "User deleted successfully",
-  });
+  res.json(updatedUser);
 }

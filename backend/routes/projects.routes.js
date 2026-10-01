@@ -1,5 +1,5 @@
 import express from "express";
-
+import { authenticateToken } from "../middleware/auth.middleware.js";
 import {
   getProjects,
   createProject,
@@ -9,9 +9,9 @@ import {
 
 const router = express.Router();
 
-router.get("/", getProjects);
-router.post("/", createProject);
-router.put("/:id", updateProject);
-router.delete("/:id", deleteProject);
+router.get("/", authenticateToken, getProjects);
+router.post("/", authenticateToken, createProject);
+router.put("/:id", authenticateToken, updateProject);
+router.delete("/:id",  authenticateToken, deleteProject);
 
 export default router;

@@ -1,4 +1,5 @@
 import express from "express";
+import { authenticateToken } from "../middleware/auth.middleware.js";
 import {
   getClients,
   createClient,
@@ -8,8 +9,8 @@ import {
 
 const router = express.Router();
 
-router.get("/", getClients);
-router.post("/", createClient);
-router.put("/:id", updateClient);
-router.delete("/:id", deleteClient);
+router.get("/", authenticateToken, getClients);
+router.post("/", authenticateToken, createClient);
+router.put("/:id",  authenticateToken, updateClient);
+router.delete("/:id", authenticateToken, deleteClient);
 export default router;
