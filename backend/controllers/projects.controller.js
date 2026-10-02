@@ -1,105 +1,192 @@
 import prisma from "../lib/prisma.js";
 
 export async function getProjects(req, res) {
-  const projects = await prisma.project.findMany({
-    where: {
-      client: {
-        userId: req.user.userId,
+  let projects;
+
+  try {
+    projects = await prisma.project.findMany({
+      where: {
+        client: {
+          userId: req.user.userId,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.log("Database error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 
   res.json(projects);
 }
 
+
 export async function createProject(req, res) {
   const { name, description, status, clientId } = req.body;
 
-  const client = await prisma.client.findFirst({
-    where: {
-      id: Number(clientId),
-      userId: req.user.userId,
-    },
-  });
+  const numericClientId = Number(clientId);
 
-  if (!client) {
-    return res.status(404).json({
-      message: "Client not found",
+  if (!name || !description || !status || !clientId) {
+    return res.status(400).json({
+      message: "Name, description, status, and clientId are required",
     });
   }
 
-  const project = await prisma.project.create({
-    data: {
-      name,
-      description,
-      status,
-      clientId: Number(clientId),
-    },
-  });
+  if (!Number.isInteger(numericClientId) || numericClientId <= 0) {
+    return res.status(400).json({
+      message: "Invalid client ID",
+    });
+  }
 
-  res.status(201).json(project);
+  try {
+    const client = await prisma.client.findFirst({
+      where: {
+        id: numericClientId,
+        userId: req.user.userId,
+      },
+    });
+
+    if (!client) {
+      return res.status(404).json({
+        message: "Client not found",
+      });
+    }
+
+    const project = await prisma.project.create({
+      data: {
+        name,
+        description,
+        status,
+        clientId: numericClientId,
+      },
+    });
+
+    res.status(201).json(project);
+  } catch (error) {
+    console.log("Database error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 }
-
 
 export async function updateProject(req, res) {
   const id = Number(req.params.id);
 
   const { name, description, status, clientId } = req.body;
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      client: {
-        userId: req.user.userId,
-      },
-    },
-  });
+  const numericClientId = Number(clientId);
 
-  if (!project) {
-    return res.status(404).json({
-      message: "Project not found",
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid project ID",
     });
   }
 
-  const updatedProject = await prisma.project.update({
-    where: {
-      id,
-    },
-    data: {
-      name,
-      description,
-      status,
-      clientId,
-    },
-  });
+  if (!name || !description || !status || !clientId) {
+    return res.status(400).json({
+      message: "Name, description, status, and clientId are required",
+    });
+  }
 
-  res.json(updatedProject);
+  if (!Number.isInteger(numericClientId) || numericClientId <= 0) {
+    return res.status(400).json({
+      message: "Invalid client ID",
+    });
+  }
+
+  try {
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        client: {
+          userId: req.user.userId,
+        },
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    const client = await prisma.client.findFirst({
+      where: {
+        id: numericClientId,
+        userId: req.user.userId,
+      },
+    });
+
+    if (!client) {
+      return res.status(404).json({
+        message: "Client not found",
+      });
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: {
+        id,
+      },
+      data: {
+        name,
+        description,
+        status,
+        clientId: numericClientId,
+      },
+    });
+
+    res.json(updatedProject);
+  } catch (error) {
+    console.log("Database error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 }
 
 
 export async function deleteProject(req, res) {
   const id = Number(req.params.id);
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      client: {
-        userId: req.user.userId,
-      },
-    },
-  });
-
-  if (!project) {
-    return res.status(404).json({
-      message: "Project not found",
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "Invalid project ID",
     });
   }
 
-  await prisma.project.delete({
-    where: {
-      id,
-    },
-  });
+  try {
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        client: {
+          userId: req.user.userId,
+        },
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    await prisma.project.delete({
+      where: {
+        id,
+      },
+    });
+  } catch (error) {
+    console.log("Database error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 
   res.json({
     message: "Project deleted successfully",
