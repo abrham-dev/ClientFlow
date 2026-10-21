@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ClientCard from '../components/ClientCard'
 import ClientForm from '../components/ClientForm'
 import ClientEditForm from '../components/ClientEditForm'
@@ -8,66 +8,115 @@ function Clients() {
   const [selectedClient, setSelectedClient] = useState(null)
   const [editingClient, setEditingClient] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [clients, setClients] = useState([])
 
-  const [clients, setClients] = useState([
-    {
-      id: 1,
-      name: 'John Smith',
-      email: 'john@example.com',
-      company: 'Acme Corporation',
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah@example.com',
-      company: 'Bright Solutions',
-    },
-    {
-      id: 3,
-      name: 'Michael Brown',
-      email: 'michael@example.com',
-      company: 'Nova Studio',
-    },
-    {
-      id: 4,
-      name: "Ali alamudi",
-      email: "aliamaudi@gmail.com",
-      company: "Medroc Investment group"
-    },
-    {
-     id: 5,
-     name: "Ethiopian Airline",
-     email: "ethiopianairline.com",
-     company: "Ethiopian Airline investment group"
-    },
-    {
-      id: 6,
-      name: "Getachew Melese",
-      email: "sweatBox.com",
-      company: "sweat Box"
+  useEffect(() => {
+  async function fetchClients() {
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await fetch('http://localhost:5000/api/clients', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients')
+      }
+
+      const data = await response.json()
+      setClients(data)
+    } catch (error) {
+      console.error('Error fetching clients:', error)
     }
-  ])
+  }
+
+  fetchClients()
+}, [])
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  function handleCreateClient(client) {
-    setClients([...clients, client])
-    setShowForm(false)
-  }
+async function handleCreateClient(client) {
+  try {
+    const token = localStorage.getItem('token')
 
-  function handleEditClient(updatedClient) {
+    const response = await fetch('http://localhost:5000/api/clients', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(client),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create client')
+    }
+
+    const newClient = await response.json()
+
+    setClients([...clients, newClient])
+    setShowForm(false)
+  } catch (error) {
+    console.error('Error creating client:', error)
+  }
+}
+
+  async function handleEditClient(updatedClient) {
+  try {
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(
+      `http://localhost:5000/api/clients/${updatedClient.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedClient),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to update client')
+    }
+
+    const savedClient = await response.json()
+
     setClients(
       clients.map((client) =>
-        client.id === updatedClient.id ? updatedClient : client
+        client.id === savedClient.id ? savedClient : client
       )
     )
 
     setEditingClient(null)
+  } catch (error) {
+    console.error('Error updating client:', error)
   }
+}
 
-  function handleDeleteClient(clientId) {
+async function handleDeleteClient(clientId) {
+  try {
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(
+      `http://localhost:5000/api/clients/${clientId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to delete client')
+    }
+
     setClients(
       clients.filter((client) => client.id !== clientId)
     )
@@ -79,7 +128,10 @@ function Clients() {
     if (editingClient?.id === clientId) {
       setEditingClient(null)
     }
+  } catch (error) {
+    console.error('Error deleting client:', error)
   }
+}
 
   return (
     <section>
@@ -112,29 +164,51 @@ function Clients() {
         </div>
       )}
 
-      {selectedClient && (
-        <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {selectedClient.name}
-          </h2>
+  {selectedClient && (
+  <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
+    <h2 className="text-xl font-semibold text-gray-900">
+      Client Details
+    </h2>
 
-          <p className="mt-2 text-gray-600">
-            {selectedClient.email}
-          </p>
+    <div className="mt-5 space-y-4">
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Name
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedClient.name || 'Not provided'}
+        </p>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Company
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedClient.company || 'Not provided'}
+        </p>
+      </div>
 
-          <p className="mt-1 text-gray-600">
-            {selectedClient.company}
-          </p>
 
-          <button
-            type="button"
-            onClick={() => setSelectedClient(null)}
-            className="mt-4 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Close
-          </button>
-        </div>
-      )}
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Email
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedClient.email || 'Not provided'}
+        </p>
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setSelectedClient(null)}
+      className="mt-6 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    >
+      Close
+    </button>
+  </div>
+)}
 
       {editingClient && (
         <ClientEditForm

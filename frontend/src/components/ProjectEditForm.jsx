@@ -1,9 +1,12 @@
 import { useState } from 'react'
 
-function ProjectEditForm({ project, onClose, onSave }) {
+function ProjectEditForm({ project, clients, onClose, onSave }) {
   const [name, setName] = useState(project.name)
-  const [client, setClient] = useState(project.client)
+  const [clientId, setClientId] = useState(String(project.clientId))
   const [status, setStatus] = useState(project.status)
+  const [description, setDescription] = useState(
+  project.description || ''
+);
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -11,7 +14,8 @@ function ProjectEditForm({ project, onClose, onSave }) {
     onSave({
       ...project,
       name,
-      client,
+      description,
+    clientId: Number(clientId),
       status,
     })
   }
@@ -58,22 +62,46 @@ function ProjectEditForm({ project, onClose, onSave }) {
         </div>
 
         <div>
-          <label
-            htmlFor="edit-project-client"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Client
-          </label>
+  <label
+    htmlFor="edit-project-description"
+    className="block text-sm font-medium text-gray-700"
+  >
+    Description (Optional)
+  </label>
 
-          <input
-            id="edit-project-client"
-            type="text"
-            value={client}
-            onChange={(event) => setClient(event.target.value)}
-            required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
-          />
-        </div>
+  <textarea
+    id="edit-project-description"
+    value={description}
+    onChange={(event) => setDescription(event.target.value)}
+    rows={4}
+    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
+  />
+</div>
+
+      <div>
+  <label
+    htmlFor="edit-project-client"
+    className="block text-sm font-medium text-gray-700"
+  >
+    Client
+  </label>
+
+  <select
+    id="edit-project-client"
+    value={clientId}
+    onChange={(event) => setClientId(event.target.value)}
+    required
+    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
+  >
+    <option value="">Select a client</option>
+
+    {clients.map((client) => (
+      <option key={client.id} value={String(client.id)}>
+        {client.name}
+      </option>
+    ))}
+  </select>
+</div>
 
         <div>
           <label
@@ -90,7 +118,7 @@ function ProjectEditForm({ project, onClose, onSave }) {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
           >
             <option value="Planning">Planning</option>
-            <option value="In Progress">In Progress</option>
+            <option value="Active">active</option>
             <option value="Completed">Completed</option>
           </select>
         </div>

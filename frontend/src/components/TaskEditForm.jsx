@@ -1,8 +1,9 @@
 import { useState } from 'react'
 
-function TaskEditForm({ task, onClose, onSave }) {
+function TaskEditForm({ task, projects, onClose, onSave }) {
   const [title, setTitle] = useState(task.title)
-  const [project, setProject] = useState(task.project)
+  const [description, setDescription] = useState(task.description || '')
+  const [projectId, setProjectId] = useState(String(task.projectId))
   const [status, setStatus] = useState(task.status)
 
   function handleSubmit(event) {
@@ -11,7 +12,8 @@ function TaskEditForm({ task, onClose, onSave }) {
     onSave({
       ...task,
       title,
-      project,
+      description,
+      projectId: Number(projectId),
       status,
     })
   }
@@ -59,20 +61,44 @@ function TaskEditForm({ task, onClose, onSave }) {
 
         <div>
           <label
+            htmlFor="edit-task-description"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Description
+          </label>
+
+          <textarea
+            id="edit-task-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
+          />
+        </div>
+
+        <div>
+          <label
             htmlFor="edit-task-project"
             className="block text-sm font-medium text-gray-700"
           >
             Project
           </label>
 
-          <input
+          <select
             id="edit-task-project"
-            type="text"
-            value={project}
-            onChange={(event) => setProject(event.target.value)}
+            value={projectId}
+            onChange={(event) => setProjectId(event.target.value)}
             required
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
-          />
+          >
+            <option value="">Select a project</option>
+
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -97,7 +123,8 @@ function TaskEditForm({ task, onClose, onSave }) {
 
         <button
           type="submit"
-          className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800"
+          disabled={projects.length === 0}
+          className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Save Changes
         </button>

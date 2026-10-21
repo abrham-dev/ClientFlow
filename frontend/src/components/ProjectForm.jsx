@@ -1,9 +1,21 @@
 import { useState } from 'react'
 
-function ProjectForm({ onClose, onCreate }) {
+function ProjectForm({ clients, onClose, onCreate }) {
   const [name, setName] = useState('')
-  const [client, setClient] = useState('')
+  const [description, setDescription] = useState('')
+  const [clientId, setClientId] = useState('')
   const [status, setStatus] = useState('Planning')
+
+  function handleSubmit(event) {
+    event.preventDefault()
+
+    onCreate({
+      name,
+      description,
+      status,
+      clientId: Number(clientId),
+    })
+  }
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6">
@@ -27,19 +39,7 @@ function ProjectForm({ onClose, onCreate }) {
         </button>
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault()
-
-          onCreate({
-            id: Date.now(),
-            name,
-            client,
-            status,
-          })
-        }}
-        className="mt-6 space-y-4"
-      >
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <label
             htmlFor="project-name"
@@ -61,21 +61,51 @@ function ProjectForm({ onClose, onCreate }) {
 
         <div>
           <label
+            htmlFor="project-description"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Description (Optional)
+          </label>
+
+          <textarea
+            id="project-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Describe the project..."
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
+          />
+        </div>
+
+        <div>
+          <label
             htmlFor="project-client"
             className="block text-sm font-medium text-gray-700"
           >
             Client
           </label>
 
-          <input
+          <select
             id="project-client"
-            type="text"
-            value={client}
-            onChange={(event) => setClient(event.target.value)}
-            placeholder="Acme Corporation"
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
             required
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
-          />
+          >
+            <option value="">Select a client</option>
+
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+
+          {clients.length === 0 && (
+            <p className="mt-1 text-sm text-gray-500">
+              No clients found. Create a client before adding a project.
+            </p>
+          )}
         </div>
 
         <div>
@@ -93,14 +123,15 @@ function ProjectForm({ onClose, onCreate }) {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500"
           >
             <option value="Planning">Planning</option>
-            <option value="In Progress">In Progress</option>
+            <option value="Active">active</option>
             <option value="Completed">Completed</option>
           </select>
         </div>
 
         <button
           type="submit"
-          className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800"
+          disabled={clients.length === 0}
+          className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Create Project
         </button>

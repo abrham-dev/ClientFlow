@@ -1,90 +1,192 @@
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import ProjectCard from '../components/ProjectCard'
 import ProjectForm from '../components/ProjectForm'
 import ProjectEditForm from '../components/ProjectEditForm'
+
 
 function Projects() {
   const [showForm, setShowForm] = useState(false)
   const [selectedProject, setSelectedProject] = useState(null)
   const [editingProject, setEditingProject] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+ const [projects, setProjects] = useState([])
+ const [clients, setClients] = useState([])
 
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: 'Website Redesign',
-      client: 'Acme Corporation',
-      status: 'In Progress',
-    },
+ 
+ useEffect(() => {
+  async function fetchData() {
+    try {
+      const token = localStorage.getItem('token')
 
-    {
-      id: 2,
-      name: 'Mobile App',
-      client: 'Bright Solutions',
-      status: 'Planning',
-    },
+      const [projectsResponse, clientsResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/projects', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch('http://localhost:5000/api/clients', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ])
 
-    {
-      id: 3,
-      name: 'E-commerce Store',
-      client: 'Nova Studio',
-      status: 'Completed',
-    },
+      if (!projectsResponse.ok || !clientsResponse.ok) {
+        throw new Error('Failed to fetch projects or clients')
+      }
 
-    {
-      id: 4,
-      name: 'website design',
-      client: "Abrsh Software",
-      status: "planning"
-    },
+      const projectsData = await projectsResponse.json()
+      const clientsData = await clientsResponse.json()
 
-    {
-      id: 5,
-      name: 'Saas',
-      client: "Abrsh Software",
-      status: "completed"
-    },
+      setClients(clientsData)
 
-    {
-      id: 6,
-      name: 'website design',
-      client: "Ethio Telecom",
-      status: "planning"
+      const projectsWithClientNames = projectsData.map((project) => {
+        const client = clientsData.find(
+          (client) => Number(client.id) === Number(project.clientId)
+        )
+
+        return {
+          ...project,
+          client: client ? client.name : 'Unknown client',
+        }
+      })
+
+      setProjects(projectsWithClientNames)
+    } catch (error) {
+      console.error('Error fetching projects and clients:', error)
     }
-  ])
+  }
+
+  fetchData()
+}, [])
 
   const filteredProjects = projects.filter((project) =>
   project.name.toLowerCase().includes(searchTerm.toLowerCase())
 )
 
-  function handleCreateProject(project) {
-    setProjects([...projects, project])
+async function handleCreateProject(project) {
+  try {
+    const token = localStorage.getItem('token')
+
+    const response = await fetch('http://localhost:5000/api/projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(project),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create project')
+    }
+
+   const selectedClient = clients.find(
+  (client) => client.id === data.clientId
+)
+
+setProjects((currentProjects) => [
+  ...currentProjects,
+  {
+    ...data,
+    client: selectedClient ? selectedClient.name : 'Unknown client',
+  },
+])
+
     setShowForm(false)
+  } catch (error) {
+    console.error('Error creating project:', error)
+    alert(error.message)
   }
-
-  function handleEditProject(updatedProject) {
-  setProjects(
-    projects.map((project) =>
-      project.id === updatedProject.id
-        ? updatedProject
-        : project
-    )
-  )
-
-  setEditingProject(null)
 }
 
-function handleDeleteProject(projectId) {
-  setProjects(
-    projects.filter((project) => project.id !== projectId)
-  )
+ async function handleEditProject(updatedProject) {
+  try {
+    const token = localStorage.getItem('token')
 
-  if (selectedProject?.id === projectId) {
-    setSelectedProject(null)
-  }
+    const response = await fetch(
+      `http://localhost:5000/api/projects/${updatedProject.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: updatedProject.name,
+          description: updatedProject.description,
+          status: updatedProject.status,
+          clientId: updatedProject.clientId,
+        }),
+      }
+    )
 
-  if (editingProject?.id === projectId) {
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update project')
+    }
+
+    const selectedClient = clients.find(
+      (client) => Number(client.id) === Number(data.clientId)
+    )
+
+    setProjects((currentProjects) =>
+      currentProjects.map((project) =>
+        project.id === data.id
+          ? {
+              ...data,
+              client: selectedClient
+                ? selectedClient.name
+                : 'Unknown client',
+            }
+          : project
+      )
+    )
+
     setEditingProject(null)
+  } catch (error) {
+    console.error('Error updating project:', error)
+    alert(error.message)
+  }
+}
+
+async function handleDeleteProject(projectId) {
+  try {
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(
+      `http://localhost:5000/api/projects/${projectId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete project')
+    }
+
+    setProjects((currentProjects) =>
+      currentProjects.filter((project) => project.id !== projectId)
+    )
+
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null)
+    }
+
+    if (editingProject?.id === projectId) {
+      setEditingProject(null)
+    }
+  } catch (error) {
+    console.error('Error deleting project:', error)
+    alert(error.message)
   }
 }
 
@@ -110,24 +212,54 @@ function handleDeleteProject(projectId) {
         </button>
       </div>
 
-      {selectedProject && (
+  {selectedProject && (
   <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
     <h2 className="text-xl font-semibold text-gray-900">
-      {selectedProject.name}
+      Project Details
     </h2>
 
-    <p className="mt-2 text-gray-600">
-      Client: {selectedProject.client}
-    </p>
+    <div className="mt-5 space-y-4">
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Project Name
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedProject.name || 'Not provided'}
+        </p>
+      </div>
 
-    <p className="mt-1 text-gray-600">
-      Status: {selectedProject.status}
-    </p>
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Client
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedProject.client || 'Not provided'}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Status
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedProject.status || 'Not provided'}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Description
+        </p>
+        <p className="mt-1 whitespace-pre-wrap text-gray-900">
+          {selectedProject.description || 'No description provided'}
+        </p>
+      </div>
+    </div>
 
     <button
       type="button"
       onClick={() => setSelectedProject(null)}
-      className="mt-4 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      className="mt-6 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
     >
       Close
     </button>
@@ -137,6 +269,7 @@ function handleDeleteProject(projectId) {
       {showForm && (
         <div className="mt-8">
           <ProjectForm
+            clients={clients}
             onClose={() => setShowForm(false)}
             onCreate={handleCreateProject}
           />
@@ -146,6 +279,7 @@ function handleDeleteProject(projectId) {
 {editingProject && (
   <ProjectEditForm
     project={editingProject}
+    clients={clients}
     onClose={() => setEditingProject(null)}
     onSave={handleEditProject}
   />

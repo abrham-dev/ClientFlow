@@ -24,13 +24,14 @@ export async function getProjects(req, res) {
 
 
 export async function createProject(req, res) {
-  const { name, description, status, clientId } = req.body;
+  const { name, status, clientId } = req.body;
+const description = req.body.description?.trim() || null;
 
   const numericClientId = Number(clientId);
 
-  if (!name || !description || !status || !clientId) {
+  if (!name || !status || !clientId) {
     return res.status(400).json({
-      message: "Name, description, status, and clientId are required",
+      message: "Name, status, and clientId are required",
     });
   }
 
@@ -76,7 +77,8 @@ export async function createProject(req, res) {
 export async function updateProject(req, res) {
   const id = Number(req.params.id);
 
-  const { name, description, status, clientId } = req.body;
+  const { name, status, clientId } = req.body;
+const description = req.body.description?.trim() || null;
 
   const numericClientId = Number(clientId);
 
@@ -86,7 +88,7 @@ export async function updateProject(req, res) {
     });
   }
 
-  if (!name || !description || !status || !clientId) {
+  if (!name || !status || !clientId) {
     return res.status(400).json({
       message: "Name, description, status, and clientId are required",
     });

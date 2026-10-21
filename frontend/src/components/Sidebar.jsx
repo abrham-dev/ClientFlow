@@ -1,8 +1,16 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 
 function Sidebar() {
+
+ const navigate = useNavigate()
+
+  function handleLogout() {
+    localStorage.removeItem('token')
+    navigate('/login', { replace: true })
+  }
+
   return (
- <aside className="flex min-h-screen w-64 flex-col border-r border-gray-200 bg-white p-6">
+<aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white p-6">
       <h2 className="text-2xl font-bold text-gray-900">
         ClientFlow
       </h2>
@@ -69,12 +77,13 @@ function Sidebar() {
           Profile
         </NavLink>
 
-        <a
-          href="/logout"
-          className="mt-1 block rounded-lg px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        >
-          Logout
-        </a>
+        <button
+  type="button"
+  onClick={handleLogout}
+  className="mt-1 block w-full rounded-lg px-4 py-2 text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+>
+  Logout
+</button>
       </div>
     </aside>
   )

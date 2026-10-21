@@ -1,3 +1,4 @@
+import cors from 'cors'
 import dotenv from "dotenv";
 dotenv.config();
 import clientsRouter from "./routes/clients.routes.js";
@@ -9,6 +10,12 @@ import authRouter from "./routes/auth.routes.js";
 import express from "express";
 
 const app = express();
+
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+}))
+
 app.use(express.json());
 
 app.get("/", (req, res) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import TaskCard from '../components/TaskCard'
 import TaskForm from '../components/TaskForm'
 import TaskEditForm from '../components/TaskEditForm'
@@ -9,69 +9,180 @@ function Tasks() {
   const [editingTask, setEditingTask] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: 'Fix login page',
-      project: 'Website Redesign',
-      status: 'In Progress',
-    },
-    {
-      id: 2,
-      title: 'Create homepage',
-      project: 'Mobile App',
-      status: 'Todo',
-    },
-    {
-      id: 3,
-      title: 'Test checkout',
-      project: 'E-commerce Store',
-      status: 'Completed',
-    },
-    {
-      id: 4,
-      title: 'Create navigation',
-      project: 'Website Design',
-      status: 'Todo',
-    },
-    {
-      id: 5,
-      title: 'Build dashboard',
-      project: 'SaaS',
-      status: 'In Progress',
-    },
-    {
-      id: 6,
-      title: 'Test payment system',
-      project: 'Website Design',
-      status: 'Completed',
-    },
-  ])
+  const [tasks, setTasks] = useState([])
+  const [projects, setProjects] = useState([])
+
+  useEffect(() => {
+  async function fetchData() {
+    const token = localStorage.getItem('token')
+
+    try {
+      const [tasksResponse, projectsResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/tasks', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch('http://localhost:5000/api/projects', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ])
+
+      if (!tasksResponse.ok) {
+  const errorData = await tasksResponse.json()
+  console.error('Tasks API error:', tasksResponse.status, errorData)
+}
+
+if (!projectsResponse.ok) {
+  const errorData = await projectsResponse.json()
+  console.error('Projects API error:', projectsResponse.status, errorData)
+}
+
+if (!tasksResponse.ok || !projectsResponse.ok) {
+  throw new Error('Failed to load tasks or projects')
+}
+
+      const tasksData = await tasksResponse.json()
+      const projectsData = await projectsResponse.json()
+
+    setProjects(projectsData)
+
+const tasksWithProjects = tasksData.map((task) => {
+  const project = projectsData.find(
+    (project) => project.id === task.projectId
+  )
+
+  return {
+    ...task,
+    project: project?.name || 'Unknown project',
+  }
+})
+
+setTasks(tasksWithProjects)
+
+console.log('Projects loaded:', projectsData)
+
+    } catch (error) {
+      console.error('Error loading tasks and projects:', error)
+    }
+  }
+
+  fetchData()
+}, [])
 
   const filteredTasks = tasks.filter((task) =>
     task.title.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  function handleCreateTask(task) {
-    setTasks([...tasks, task])
-    setShowForm(false)
-  }
+ async function handleCreateTask(task) {
+  const token = localStorage.getItem('token')
 
-  function handleEditTask(updatedTask) {
-    setTasks(
-      tasks.map((task) =>
-        task.id === updatedTask.id
-          ? updatedTask
-          : task
+  try {
+    const response = await fetch('http://localhost:5000/api/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(task),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create task')
+    }
+
+    const project = projects.find(
+      (project) => project.id === data.projectId
+    )
+
+    const taskWithProject = {
+      ...data,
+      project: project?.name || 'Unknown project',
+    }
+
+    setTasks((currentTasks) => [...currentTasks, taskWithProject])
+    setShowForm(false)
+  } catch (error) {
+    console.error('Error creating task:', error)
+    alert(error.message)
+  }
+}
+
+async function handleEditTask(updatedTask) {
+  const token = localStorage.getItem('token')
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/tasks/${updatedTask.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: updatedTask.title,
+          description: updatedTask.description,
+          status: updatedTask.status,
+          projectId: updatedTask.projectId,
+        }),
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update task')
+    }
+
+    const project = projects.find(
+      (project) => project.id === data.projectId
+    )
+
+    const taskWithProject = {
+      ...data,
+      project: project?.name || 'Unknown project',
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskWithProject.id ? taskWithProject : task
       )
     )
 
     setEditingTask(null)
+    setSelectedTask(null)
+  } catch (error) {
+    console.error('Error updating task:', error)
+    alert(error.message)
   }
+}
+async function handleDeleteTask(taskId) {
+  const token = localStorage.getItem('token')
 
-  function handleDeleteTask(taskId) {
-    setTasks(
-      tasks.filter((task) => task.id !== taskId)
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/tasks/${taskId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete task')
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId)
     )
 
     if (selectedTask?.id === taskId) {
@@ -81,7 +192,11 @@ function Tasks() {
     if (editingTask?.id === taskId) {
       setEditingTask(null)
     }
+  } catch (error) {
+    console.error('Error deleting task:', error)
+    alert(error.message)
   }
+}
 
   return (
     <section>
@@ -108,39 +223,71 @@ function Tasks() {
       {showForm && (
         <div className="mt-8">
           <TaskForm
+              projects={projects}
             onClose={() => setShowForm(false)}
             onCreate={handleCreateTask}
           />
         </div>
       )}
 
-      {selectedTask && (
-        <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {selectedTask.title}
-          </h2>
+  {selectedTask && (
+  <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
+    <h2 className="text-xl font-semibold text-gray-900">
+      Task Details
+    </h2>
 
-          <p className="mt-2 text-gray-600">
-            Project: {selectedTask.project}
-          </p>
+    <div className="mt-5 space-y-4">
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Task Title
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedTask.title || 'Not provided'}
+        </p>
+      </div>
 
-          <p className="mt-1 text-gray-600">
-            Status: {selectedTask.status}
-          </p>
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Project
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedTask.project || 'Not provided'}
+        </p>
+      </div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedTask(null)}
-            className="mt-4 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Close
-          </button>
-        </div>
-      )}
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Status
+        </p>
+        <p className="mt-1 text-gray-900">
+          {selectedTask.status || 'Not provided'}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-500">
+          Description
+        </p>
+        <p className="mt-1 whitespace-pre-wrap text-gray-900">
+          {selectedTask.description || 'No description provided'}
+        </p>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setSelectedTask(null)}
+      className="mt-6 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    >
+      Close
+    </button>
+  </div>
+)}
 
       {editingTask && (
         <TaskEditForm
           task={editingTask}
+          projects={projects}
           onClose={() => setEditingTask(null)}
           onSave={handleEditTask}
         />

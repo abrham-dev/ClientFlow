@@ -3,15 +3,35 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export async function register(req, res) {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
 
-  if (!username || !password) {
+  if (
+    typeof username !== "string" ||
+    typeof email !== "string" ||
+    typeof password !== "string"
+  ) {
     return res.status(400).json({
-      message: "Username and password are required",
+      message: "Username, email, and password must be text",
     });
   }
 
-  if (username.length < 3) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!username.trim() || !normalizedEmail || !password) {
+    return res.status(400).json({
+      message: "Username, email, and password are required",
+    });
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailPattern.test(normalizedEmail)) {
+    return res.status(400).json({
+      message: "Please enter a valid email address",
+    });
+  }
+
+  if (username.trim().length < 3) {
     return res.status(400).json({
       message: "Username must be at least 3 characters",
     });
@@ -30,7 +50,8 @@ export async function register(req, res) {
   try {
     user = await prisma.user.create({
       data: {
-        username,
+        username: username.trim(),
+        email: normalizedEmail,
         password: hashedPassword,
       },
     });
@@ -39,7 +60,7 @@ export async function register(req, res) {
 
     if (error.code === "P2002") {
       return res.status(409).json({
-        message: "Username already exists",
+        message: "Username or email already exists",
       });
     }
 
@@ -48,11 +69,12 @@ export async function register(req, res) {
     });
   }
 
-  res.status(201).json({
+  return res.status(201).json({
     message: "User registered successfully",
     user: {
       id: user.id,
       username: user.username,
+      email: user.email,
     },
   });
 }
@@ -62,7 +84,7 @@ export async function login(req, res) {
 
     if (!username || !password) {
     return res.status(400).json({
-      message: "Username and password are required",
+      message: "username and password are required",
     });
   }
 
