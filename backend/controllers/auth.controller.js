@@ -1,10 +1,12 @@
+
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export async function register(req, res) {
-  const { username, email, password } = req.body;
+  const { username, email, password } = req.body ?? {};
 
+  // Validate input types.
   if (
     typeof username !== "string" ||
     typeof email !== "string" ||
@@ -15,14 +17,17 @@ export async function register(req, res) {
     });
   }
 
+  // Normalize username and email before saving.
+  const normalizedUsername = username.trim();
   const normalizedEmail = email.trim().toLowerCase();
 
-  if (!username.trim() || !normalizedEmail || !password) {
+  if (!normalizedUsername || !normalizedEmail || !password) {
     return res.status(400).json({
       message: "Username, email, and password are required",
     });
   }
 
+  // Validate the email format.
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!emailPattern.test(normalizedEmail)) {
@@ -31,7 +36,8 @@ export async function register(req, res) {
     });
   }
 
-  if (username.trim().length < 3) {
+  // Validate username and password lengths.
+  if (normalizedUsername.length < 3) {
     return res.status(400).json({
       message: "Username must be at least 3 characters",
     });
@@ -43,88 +49,128 @@ export async function register(req, res) {
     });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  let user;
-
   try {
-    user = await prisma.user.create({
+    // Hash the password before storing it in the database.
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
       data: {
-        username: username.trim(),
+        username: normalizedUsername,
         email: normalizedEmail,
         password: hashedPassword,
       },
     });
-  } catch (error) {
-    console.log("Database error:", error);
 
+    // Never return the password or password hash to the client.
+    return res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    // Handle duplicate usernames or emails.
     if (error.code === "P2002") {
       return res.status(409).json({
         message: "Username or email already exists",
       });
     }
 
+    console.error("Registration failed:", error);
+
     return res.status(500).json({
       message: "Something went wrong",
     });
   }
-
-  return res.status(201).json({
-    message: "User registered successfully",
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
-  });
 }
 
 export async function login(req, res) {
-  const { username, password } = req.body;
+  const { username, password } = req.body ?? {};
 
-    if (!username || !password) {
+  // Validate input types.
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string"
+  ) {
     return res.status(400).json({
-      message: "username and password are required",
+      message: "Username and password must be text",
     });
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      username,
-    },
-  });
+  const normalizedUsername = username.trim();
 
-  if (!user) {
-    return res.status(401).json({
-      message: "Invalid username or password",
+  if (!normalizedUsername || !password) {
+    return res.status(400).json({
+      message: "Username and password are required",
     });
   }
 
-  const passwordMatch = await bcrypt.compare(password, user.password);
+  // Ensure the JWT secret is configured before signing a token.
+  const jwtSecret = process.env.JWT_SECRET;
 
-  if (!passwordMatch) {
-    return res.status(401).json({
-      message: "Invalid username or password",
+  if (!jwtSecret) {
+    console.error("JWT_SECRET is not configured");
+
+    return res.status(500).json({
+      message: "Internal server error",
     });
   }
 
-  const token = jwt.sign(
-    {
-      userId: user.id,
-      username: user.username,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1d",
+  try {
+    // Find the user by username.
+    const user = await prisma.user.findUnique({
+      where: {
+        username: normalizedUsername,
+      },
+    });
+
+    // Use the same error message for an unknown username
+    // and an incorrect password.
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
     }
-  );
 
-  res.json({
-    message: "Login successful",
-    token,
-    user: {
-      id: user.id,
-      username: user.username,
-    },
-  });
+    // Compare the submitted password with the stored hash.
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!passwordMatch) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    // Create a token containing the user's identity.
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+      },
+      jwtSecret,
+      {
+        expiresIn: "1d",
+      }
+    );
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+      },
+    });
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 }

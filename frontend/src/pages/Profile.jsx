@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
 
 function Profile() {
-
   const [user, setUser] = useState(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [username, setUsername] = useState('')
-const [email, setEmail] = useState('')
-const [currentPassword, setCurrentPassword] = useState('')
-const [password, setPassword] = useState('')
-const [message, setMessage] = useState('')
-const [isSaving, setIsSaving] = useState(false)
+  const [email, setEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     async function fetchProfile() {
@@ -23,7 +22,7 @@ const [isSaving, setIsSaving] = useState(false)
         }
 
         const response = await fetch(
-          'http://localhost:5000/api/users/me',
+          `${import.meta.env.VITE_API_URL}/api/users/me`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -33,20 +32,20 @@ const [isSaving, setIsSaving] = useState(false)
 
         const data = await response.json();
 
-       if (!response.ok) {
-  if (response.status === 401) {
-    localStorage.removeItem('token')
-    window.location.href = '/login'
-    return
-  }
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('token')
+            window.location.href = '/login'
+            return
+          }
 
-  setError(data.message || 'Failed to load profile.')
-  return
-}
+          setError(data.message || 'Failed to load profile.')
+          return
+        }
 
         setUser(data)
-setUsername(data.username || '')
-setEmail(data.email || '')
+        setUsername(data.username || '')
+        setEmail(data.email || '')
       } catch {
         setError('Could not connect to the server.')
       } finally {
@@ -58,61 +57,61 @@ setEmail(data.email || '')
   }, [])
 
   async function handleSaveProfile(event) {
-  event.preventDefault()
+    event.preventDefault()
 
-  setError('')
-  setMessage('')
-  setIsSaving(true)
+    setError('')
+    setMessage('')
+    setIsSaving(true)
 
-  try {
-    const token = localStorage.getItem('token')
+    try {
+      const token = localStorage.getItem('token')
 
-    if (!token) {
-      setError('You are not logged in.')
-      return
-    }
-
-    const updatedData = {
-      username: username.trim(),
-      email: email.trim() || null,
-    }
-
-    if (password) {
-      updatedData.currentPassword = currentPassword
-      updatedData.password = password
-    }
-
-    const response = await fetch(
-      'http://localhost:5000/api/users/me',
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedData),
+      if (!token) {
+        setError('You are not logged in.')
+        return
       }
-    )
 
-    const data = await response.json()
+      const updatedData = {
+        username: username.trim(),
+        email: email.trim() || null,
+      }
 
-    if (!response.ok) {
-      setError(data.message || 'Failed to update profile.')
-      return
+      if (password) {
+        updatedData.currentPassword = currentPassword
+        updatedData.password = password
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/users/me`,
+        {  
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updatedData),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.message || 'Failed to update profile.')
+        return
+      }
+
+      setUser(data)
+      setUsername(data.username || '')
+      setEmail(data.email || '')
+      setCurrentPassword('')
+      setPassword('')
+      setMessage('Profile updated successfully.')
+    } catch {
+      setError('Could not connect to the server.')
+    } finally {
+      setIsSaving(false)
     }
-
-    setUser(data)
-    setUsername(data.username || '')
-    setEmail(data.email || '')
-    setCurrentPassword('')
-    setPassword('')
-    setMessage('Profile updated successfully.')
-  } catch {
-    setError('Could not connect to the server.')
-  } finally {
-    setIsSaving(false)
   }
-}
 
   if (isLoading) {
     return <p>Loading profile...</p>
@@ -122,7 +121,7 @@ setEmail(data.email || '')
     return <p className="text-red-600">{error}</p>
   }
 
-    return (
+  return (
     <section>
       <h1 className="text-3xl font-bold text-gray-900">
         Profile
@@ -250,4 +249,5 @@ setEmail(data.email || '')
     </section>
   )
 }
+
 export default Profile;

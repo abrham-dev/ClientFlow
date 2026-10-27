@@ -15,7 +15,7 @@ function Clients() {
     try {
       const token = localStorage.getItem('token')
 
-      const response = await fetch('http://localhost:5000/api/clients', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/clients`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -43,7 +43,7 @@ async function handleCreateClient(client) {
   try {
     const token = localStorage.getItem('token')
 
-    const response = await fetch('http://localhost:5000/api/clients', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/clients`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,16 +52,17 @@ async function handleCreateClient(client) {
       body: JSON.stringify(client),
     })
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error('Failed to create client')
+      throw new Error(data.message || 'Failed to create client')
     }
 
-    const newClient = await response.json()
-
-    setClients([...clients, newClient])
+    setClients([...clients, data])
     setShowForm(false)
   } catch (error) {
     console.error('Error creating client:', error)
+    alert(('Failed to create project. Please try again.'))
   }
 }
 
@@ -70,7 +71,7 @@ async function handleCreateClient(client) {
     const token = localStorage.getItem('token')
 
     const response = await fetch(
-      `http://localhost:5000/api/clients/${updatedClient.id}`,
+     `${import.meta.env.VITE_API_URL}/api/clients/${updatedClient.id}`,
       {
         method: 'PUT',
         headers: {
@@ -96,15 +97,24 @@ async function handleCreateClient(client) {
     setEditingClient(null)
   } catch (error) {
     console.error('Error updating client:', error)
+ alert(('Failed to edit project. Please try again.'))
   }
 }
 
 async function handleDeleteClient(clientId) {
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this client?\n\nAll projects and tasks associated with this client will also be permanently deleted.\n\nThis action cannot be undone.'
+  )
+
+  if (!confirmed) {
+    return
+  }
+
   try {
     const token = localStorage.getItem('token')
 
     const response = await fetch(
-      `http://localhost:5000/api/clients/${clientId}`,
+      `${import.meta.env.VITE_API_URL}/api/clients/${clientId}`,
       {
         method: 'DELETE',
         headers: {
@@ -113,9 +123,10 @@ async function handleDeleteClient(clientId) {
       }
     )
 
-    if (!response.ok) {
-      throw new Error('Failed to delete client')
-    }
+      const data = await response.json();
+   if (!response.ok) {
+  throw new Error(data.message || 'Failed to delete client')
+}
 
     setClients(
       clients.filter((client) => client.id !== clientId)
@@ -130,8 +141,10 @@ async function handleDeleteClient(clientId) {
     }
   } catch (error) {
     console.error('Error deleting client:', error)
+    alert('Failed to delete client. Please try again.')
   }
 }
+
 
   return (
     <section>

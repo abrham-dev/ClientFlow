@@ -38,20 +38,12 @@ function TaskCard({
         </button>
 
         <button
-          type="button"
-          onClick={() => {
-            const confirmed = window.confirm(
-              `Delete ${title}?`
-            )
-
-            if (confirmed) {
-              onDelete()
-            }
-          }}
-          className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-        >
-          Delete
-        </button>
+  type="button"
+  onClick={onDelete}
+  className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+>
+  Delete
+</button>
       </div>
     </div>
   )

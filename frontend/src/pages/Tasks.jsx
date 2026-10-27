@@ -18,12 +18,12 @@ function Tasks() {
 
     try {
       const [tasksResponse, projectsResponse] = await Promise.all([
-        fetch('http://localhost:5000/api/tasks', {
+        fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
-        fetch('http://localhost:5000/api/projects', {
+    fetch(`${import.meta.env.VITE_API_URL}/api/projects`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -80,7 +80,7 @@ console.log('Projects loaded:', projectsData)
   const token = localStorage.getItem('token')
 
   try {
-    const response = await fetch('http://localhost:5000/api/tasks', {
+   const response = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ console.log('Projects loaded:', projectsData)
     setShowForm(false)
   } catch (error) {
     console.error('Error creating task:', error)
-    alert(error.message)
+     alert('Failed to create task. Please try again.')
   }
 }
 
@@ -117,7 +117,7 @@ async function handleEditTask(updatedTask) {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/tasks/${updatedTask.id}`,
+      `${import.meta.env.VITE_API_URL}/api/tasks/${updatedTask.id}`,
       {
         method: 'PUT',
         headers: {
@@ -158,15 +158,26 @@ async function handleEditTask(updatedTask) {
     setSelectedTask(null)
   } catch (error) {
     console.error('Error updating task:', error)
-    alert(error.message)
+    alert('Failed to edit task. Please try again.')
   }
 }
+
 async function handleDeleteTask(taskId) {
+  // Ask for confirmation before deleting the task.
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this task?\n\nThis action cannot be undone.'
+  )
+
+  // Stop if the user cancels the deletion.
+  if (!confirmed) {
+    return
+  }
+
   const token = localStorage.getItem('token')
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/tasks/${taskId}`,
+      `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}`,
       {
         method: 'DELETE',
         headers: {
@@ -194,7 +205,7 @@ async function handleDeleteTask(taskId) {
     }
   } catch (error) {
     console.error('Error deleting task:', error)
-    alert(error.message)
+    alert('Failed to delete task. Please try again.')
   }
 }
 

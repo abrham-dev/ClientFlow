@@ -19,12 +19,12 @@ function Projects() {
       const token = localStorage.getItem('token')
 
       const [projectsResponse, clientsResponse] = await Promise.all([
-        fetch('http://localhost:5000/api/projects', {
+       fetch(`${import.meta.env.VITE_API_URL}/api/projects`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
-        fetch('http://localhost:5000/api/clients', {
+     fetch(`${import.meta.env.VITE_API_URL}/api/clients`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -68,7 +68,7 @@ async function handleCreateProject(project) {
   try {
     const token = localStorage.getItem('token')
 
-    const response = await fetch('http://localhost:5000/api/projects', {
+   const response = await fetch(`${import.meta.env.VITE_API_URL}/api/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ setProjects((currentProjects) => [
     setShowForm(false)
   } catch (error) {
     console.error('Error creating project:', error)
-    alert(error.message)
+     alert('Failed to create project. Please try again.')
   }
 }
 
@@ -107,7 +107,7 @@ setProjects((currentProjects) => [
     const token = localStorage.getItem('token')
 
     const response = await fetch(
-      `http://localhost:5000/api/projects/${updatedProject.id}`,
+     `${import.meta.env.VITE_API_URL}/api/projects/${updatedProject.id}`,
       {
         method: 'PUT',
         headers: {
@@ -149,16 +149,25 @@ setProjects((currentProjects) => [
     setEditingProject(null)
   } catch (error) {
     console.error('Error updating project:', error)
-    alert(error.message)
+    (alert('Failed to edit  project. Please try again.'))
   }
 }
 
 async function handleDeleteProject(projectId) {
+
+  const confirmed = window.confirm(
+  'Are you sure you want to delete this project?\n\nAll tasks associated with this project will also be permanently deleted.\n\nThis action cannot be undone.'
+)
+
+if (!confirmed) {
+  return
+}
+
   try {
     const token = localStorage.getItem('token')
 
     const response = await fetch(
-      `http://localhost:5000/api/projects/${projectId}`,
+     `${import.meta.env.VITE_API_URL}/api/projects/${projectId}`,
       {
         method: 'DELETE',
         headers: {
@@ -186,7 +195,7 @@ async function handleDeleteProject(projectId) {
     }
   } catch (error) {
     console.error('Error deleting project:', error)
-    alert(error.message)
+    (alert('Failed to create project. Please try again.'))
   }
 }
 

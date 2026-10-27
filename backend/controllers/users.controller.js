@@ -1,8 +1,10 @@
+
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 
 export async function getMe(req, res) {
   try {
+    // Get the ID of the authenticated user from the verified JWT.
     const userId = req.user.userId;
 
     const user = await prisma.user.findUnique({
@@ -33,16 +35,12 @@ export async function getMe(req, res) {
 }
 
 export async function updateMe(req, res) {
+  // Safely handle a missing request body.
+  const { username, email, currentPassword, password } = req.body ?? {};
+
   const userId = req.user.userId;
 
-  const {
-    username,
-    email,
-    currentPassword,
-    password,
-  } = req.body;
-
-  // 1. Check that at least one profile field is being updated
+  // Check that at least one profile field is being updated.
   if (
     username === undefined &&
     email === undefined &&
@@ -53,7 +51,7 @@ export async function updateMe(req, res) {
     });
   }
 
-  // 2. Validate username
+  // Validate the username.
   if (username !== undefined) {
     if (
       typeof username !== "string" ||
@@ -65,7 +63,7 @@ export async function updateMe(req, res) {
     }
   }
 
-  // 3. Validate optional email
+  // Validate the optional email address.
   let normalizedEmail;
 
   if (email !== undefined) {
@@ -78,20 +76,22 @@ export async function updateMe(req, res) {
     } else {
       normalizedEmail = email.trim().toLowerCase();
 
-      // An empty email means the user wants to remove it
+      // An empty email means the user wants to remove it.
       if (normalizedEmail === "") {
         normalizedEmail = null;
-      } else if (
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
-      ) {
-        return res.status(400).json({
-          message: "Please enter a valid email address",
-        });
+      } else {
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(normalizedEmail)) {
+          return res.status(400).json({
+            message: "Please enter a valid email address",
+          });
+        }
       }
     }
   }
 
-  // 4. Require the current password for every profile update
+  // Require the current password for every profile update.
   if (
     typeof currentPassword !== "string" ||
     currentPassword.length === 0
@@ -101,20 +101,20 @@ export async function updateMe(req, res) {
     });
   }
 
-  // 5. Validate a new password, if provided
+  // Validate a new password, if provided.
   if (password !== undefined) {
     if (
       typeof password !== "string" ||
-      password.length < 6
+      password.length < 8
     ) {
       return res.status(400).json({
-        message: "New password must be at least 6 characters",
+        message: "New password must be at least 8 characters",
       });
     }
   }
 
   try {
-    // 6. Retrieve the existing password hash
+    // Retrieve the existing password hash.
     const existingUser = await prisma.user.findUnique({
       where: {
         id: userId,
@@ -130,7 +130,7 @@ export async function updateMe(req, res) {
       });
     }
 
-    // 7. Verify the current password
+    // Verify the current password before allowing changes.
     const isPasswordCorrect = await bcrypt.compare(
       currentPassword,
       existingUser.password
@@ -142,7 +142,7 @@ export async function updateMe(req, res) {
       });
     }
 
-    // 8. Prepare the fields to update
+    // Prepare only the fields that the user wants to update.
     const updateData = {};
 
     if (username !== undefined) {
@@ -157,7 +157,7 @@ export async function updateMe(req, res) {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
-    // 9. Update the user without returning the password
+    // Update the user without returning the password hash.
     const updatedUser = await prisma.user.update({
       where: {
         id: userId,
@@ -172,13 +172,14 @@ export async function updateMe(req, res) {
 
     return res.json(updatedUser);
   } catch (error) {
-    console.error("Error updating profile:", error);
-
+    // Handle duplicate usernames or email addresses.
     if (error.code === "P2002") {
       return res.status(409).json({
         message: "Username or email already exists",
       });
     }
+
+    console.error("Error updating profile:", error);
 
     return res.status(500).json({
       message: "Something went wrong",

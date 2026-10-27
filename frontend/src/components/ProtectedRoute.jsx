@@ -12,7 +12,6 @@ function ProtectedRoute() {
 
     const lastActivity = localStorage.getItem('lastActivity')
     const now = Date.now()
-
     if (
       lastActivity &&
       now - Number(lastActivity) >= INACTIVITY_LIMIT

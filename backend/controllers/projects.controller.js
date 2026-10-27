@@ -1,47 +1,86 @@
+
 import prisma from "../lib/prisma.js";
 
+// Get all projects belonging to the authenticated user.
 export async function getProjects(req, res) {
-  let projects;
-
   try {
-    projects = await prisma.project.findMany({
+    const projects = await prisma.project.findMany({
       where: {
+        // A project belongs to a user through its client.
         client: {
           userId: req.user.userId,
         },
       },
     });
+
+    return res.json(projects);
   } catch (error) {
-    console.log("Database error:", error);
+    console.error("Error fetching projects:", error);
 
     return res.status(500).json({
       message: "Something went wrong",
     });
   }
-
-  res.json(projects);
 }
 
-
+// Create a project for a client owned by the authenticated user.
 export async function createProject(req, res) {
-  const { name, status, clientId } = req.body;
-const description = req.body.description?.trim() || null;
+  const { name, status, clientId, description } = req.body ?? {};
 
-  const numericClientId = Number(clientId);
-
-  if (!name || !status || !clientId) {
+  // Check that required fields are provided.
+  if (
+    name === undefined ||
+    status === undefined ||
+    clientId === undefined ||
+    clientId === null ||
+    clientId === ""
+  ) {
     return res.status(400).json({
       message: "Name, status, and clientId are required",
     });
   }
 
-  if (!Number.isInteger(numericClientId) || numericClientId <= 0) {
+  // Validate the types of the project fields.
+  if (
+    typeof name !== "string" ||
+    typeof status !== "string" ||
+    (description !== undefined &&
+      description !== null &&
+      typeof description !== "string")
+  ) {
+    return res.status(400).json({
+      message: "Invalid project data",
+    });
+  }
+
+  // Normalize the input values.
+  const normalizedName = name.trim();
+  const normalizedStatus = status.trim();
+  const normalizedDescription =
+    typeof description === "string"
+      ? description.trim() || null
+      : null;
+
+  if (!normalizedName || !normalizedStatus) {
+    return res.status(400).json({
+      message: "Name and status cannot be empty",
+    });
+  }
+
+  // Convert the client ID to a number and validate it.
+  const numericClientId = Number(clientId);
+
+  if (
+    !Number.isInteger(numericClientId) ||
+    numericClientId <= 0
+  ) {
     return res.status(400).json({
       message: "Invalid client ID",
     });
   }
 
   try {
+    // Confirm that the selected client belongs to this user.
     const client = await prisma.client.findFirst({
       where: {
         id: numericClientId,
@@ -55,18 +94,19 @@ const description = req.body.description?.trim() || null;
       });
     }
 
+    // Create the project and connect it to the selected client.
     const project = await prisma.project.create({
       data: {
-        name,
-        description,
-        status,
+        name: normalizedName,
+        description: normalizedDescription,
+        status: normalizedStatus,
         clientId: numericClientId,
       },
     });
 
-    res.status(201).json(project);
+    return res.status(201).json(project);
   } catch (error) {
-    console.log("Database error:", error);
+    console.error("Error creating project:", error);
 
     return res.status(500).json({
       message: "Something went wrong",
@@ -74,33 +114,72 @@ const description = req.body.description?.trim() || null;
   }
 }
 
+// Update a project belonging to the authenticated user.
 export async function updateProject(req, res) {
   const id = Number(req.params.id);
+  const { name, status, clientId, description } = req.body ?? {};
 
-  const { name, status, clientId } = req.body;
-const description = req.body.description?.trim() || null;
-
-  const numericClientId = Number(clientId);
-
+  // Validate the project ID from the URL.
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({
       message: "Invalid project ID",
     });
   }
 
-  if (!name || !status || !clientId) {
+  // Check that required fields are provided.
+  if (
+    name === undefined ||
+    status === undefined ||
+    clientId === undefined ||
+    clientId === null ||
+    clientId === ""
+  ) {
     return res.status(400).json({
-      message: "Name, description, status, and clientId are required",
+      message: "Name, status, and clientId are required",
     });
   }
 
-  if (!Number.isInteger(numericClientId) || numericClientId <= 0) {
+  // Validate the types of the project fields.
+  if (
+    typeof name !== "string" ||
+    typeof status !== "string" ||
+    (description !== undefined &&
+      description !== null &&
+      typeof description !== "string")
+  ) {
+    return res.status(400).json({
+      message: "Invalid project data",
+    });
+  }
+
+  // Normalize the input values.
+  const normalizedName = name.trim();
+  const normalizedStatus = status.trim();
+  const normalizedDescription =
+    typeof description === "string"
+      ? description.trim() || null
+      : null;
+
+  if (!normalizedName || !normalizedStatus) {
+    return res.status(400).json({
+      message: "Name and status cannot be empty",
+    });
+  }
+
+  // Convert and validate the new client ID.
+  const numericClientId = Number(clientId);
+
+  if (
+    !Number.isInteger(numericClientId) ||
+    numericClientId <= 0
+  ) {
     return res.status(400).json({
       message: "Invalid client ID",
     });
   }
 
   try {
+    // Confirm that the existing project belongs to this user.
     const project = await prisma.project.findFirst({
       where: {
         id,
@@ -116,6 +195,7 @@ const description = req.body.description?.trim() || null;
       });
     }
 
+    // Confirm that the destination client also belongs to this user.
     const client = await prisma.client.findFirst({
       where: {
         id: numericClientId,
@@ -129,21 +209,22 @@ const description = req.body.description?.trim() || null;
       });
     }
 
+    // Update the project with the validated values.
     const updatedProject = await prisma.project.update({
       where: {
         id,
       },
       data: {
-        name,
-        description,
-        status,
+        name: normalizedName,
+        description: normalizedDescription,
+        status: normalizedStatus,
         clientId: numericClientId,
       },
     });
 
-    res.json(updatedProject);
+    return res.json(updatedProject);
   } catch (error) {
-    console.log("Database error:", error);
+    console.error("Error updating project:", error);
 
     return res.status(500).json({
       message: "Something went wrong",
@@ -151,10 +232,11 @@ const description = req.body.description?.trim() || null;
   }
 }
 
-
+// Delete a project belonging to the authenticated user.
 export async function deleteProject(req, res) {
   const id = Number(req.params.id);
 
+  // Validate the project ID from the URL.
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({
       message: "Invalid project ID",
@@ -162,6 +244,7 @@ export async function deleteProject(req, res) {
   }
 
   try {
+    // Confirm that the project belongs to this user.
     const project = await prisma.project.findFirst({
       where: {
         id,
@@ -177,20 +260,21 @@ export async function deleteProject(req, res) {
       });
     }
 
+    // The database cascade rule automatically deletes the project's tasks.
     await prisma.project.delete({
       where: {
         id,
       },
     });
+
+    return res.json({
+      message: "Project deleted successfully",
+    });
   } catch (error) {
-    console.log("Database error:", error);
+    console.error("Error deleting project:", error);
 
     return res.status(500).json({
       message: "Something went wrong",
     });
   }
-
-  res.json({
-    message: "Project deleted successfully",
-  });
 }

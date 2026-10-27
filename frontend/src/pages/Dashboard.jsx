@@ -26,12 +26,12 @@ function Dashboard() {
       Authorization: `Bearer ${token}`,
     }
 
-    const [clientsResponse, projectsResponse, tasksResponse] =
-      await Promise.all([
-        fetch('http://localhost:5000/api/clients', { headers }),
-        fetch('http://localhost:5000/api/projects', { headers }),
-        fetch('http://localhost:5000/api/tasks', { headers }),
-      ])
+   const [clientsResponse, projectsResponse, tasksResponse] =
+  await Promise.all([
+    fetch(`${import.meta.env.VITE_API_URL}/api/clients`, { headers }),
+    fetch(`${import.meta.env.VITE_API_URL}/api/projects`, { headers }),
+    fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, { headers }),
+  ])
 
     const [clientsData, projectsData, tasksData] = await Promise.all([
       clientsResponse.json(),

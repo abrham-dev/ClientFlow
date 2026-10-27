@@ -30,17 +30,9 @@ function ClientCard({ name, email, company, onView, onEdit, onDelete }) {
           Edit
         </button>
 
-        <button
+    <button
   type="button"
- onClick={() => {
-    const confirmed = window.confirm(
-      `Delete ${name}?`
-    )
-
-    if (confirmed) {
-      onDelete()
-    }
-  }}
+  onClick={onDelete}
   className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
 >
   Delete
