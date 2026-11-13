@@ -124,7 +124,7 @@ finally {
   }
 
   return (
-    <section className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+   <section className="flex min-h-screen items-start justify-center bg-gray-50 px-4 pt-8 sm:items-center sm:pt-0">
       <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">

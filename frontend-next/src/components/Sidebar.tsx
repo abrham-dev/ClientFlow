@@ -6,7 +6,12 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
-function Sidebar() {
+type SidebarProps = {
+  isOpen: boolean
+  onClose: () => void
+}
+
+function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -26,50 +31,66 @@ function Sidebar() {
       : 'block rounded-lg px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900'
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white p-6">
-      {/* Application name */}
-      <h2 className="text-2xl font-bold text-gray-900">
-        ClientFlow
-      </h2>
+    <>
+      {/* Mobile background overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 sm:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Main navigation links */}
-      <nav className="mt-8 flex flex-col gap-2">
-        <Link href="/" className={linkClass('/')}>
-          Dashboard
-        </Link>
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white p-6 transition-transform duration-300 lg:static lg:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Application name */}
+        <h2 className="text-2xl font-bold text-gray-900">
+          ClientFlow
+        </h2>
 
-        <Link href="/clients" className={linkClass('/clients')}>
-          Clients
-        </Link>
+{/* Main navigation links */}
+<nav className="mt-8 flex flex-col gap-2">
+  <Link href="/" onClick={onClose} className={linkClass('/')}>
+    Dashboard
+  </Link>
 
-        <Link href="/projects" className={linkClass('/projects')}>
-          Projects
-        </Link>
+  <Link href="/clients" onClick={onClose} className={linkClass('/clients')}>
+    Clients
+  </Link>
 
-        <Link href="/tasks" className={linkClass('/tasks')}>
-          Tasks
-        </Link>
-      </nav>
+  <Link href="/projects" onClick={onClose} className={linkClass('/projects')}>
+    Projects
+  </Link>
 
-      {/* Account links and logout button */}
-      <div className="mt-auto border-t border-gray-200 pt-6">
-        <p className="mb-2 text-sm font-semibold text-gray-500">
-          Account
-        </p>
+  <Link href="/tasks" onClick={onClose} className={linkClass('/tasks')}>
+    Tasks
+  </Link>
+</nav>
 
-        <Link href="/profile" className={linkClass('/profile')}>
-          Profile
-        </Link>
+        {/* Account links and logout button */}
+        <div className="mt-auto border-t border-gray-200 pt-6">
+          <p className="mb-2 text-sm font-semibold text-gray-500">
+            Account
+          </p>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-1 block w-full rounded-lg px-4 py-2 text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        >
-          Logout
-        </button>
-      </div>
-    </aside>
+          <Link href="/profile" onClick={onClose} className={linkClass('/profile')}>
+  Profile
+</Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-1 block w-full rounded-lg px-4 py-2 text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }
 
